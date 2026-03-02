@@ -1,154 +1,638 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Money Replay</title>
-
+<title>Smart Money Lab – MTF Core</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-
-body{
-background:#111;
-color:white;
-font-family:Arial, sans-serif;
-padding:15px;
+:root {
+  --glass: rgba(255,255,255,0.05);
+  --glass-border: rgba(255,255,255,0.12);
+  --glow-green: #00ffcc;
+  --glow-gold: #ffaa00;
+  --glow-blue: #00aaff;
+  --bg-deep: #050810;
+  --bg-mid: #0a0f1e;
 }
 
-#chartContainer{
-width:100%;
-height:500px;
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg-deep);
+  color: #fff;
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-button{
-padding:8px 14px;
-margin:5px;
-border:none;
-border-radius:6px;
-cursor:pointer;
+/* ── Animated BG ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(0,255,204,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 80%, rgba(255,170,0,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,170,255,0.04) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.primary{background:#00ffcc;color:#000;}
-.secondary{background:#ffaa00;color:#000;}
-.speed{background:#333;color:white;}
+/* Grid overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,204,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,204,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
 
-.controls{
-margin-top:10px;
+.app {
+  position: relative;
+  z-index: 1;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 18px 28px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 0 1px rgba(0,255,204,0.05);
+  animation: slideDown 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes slideDown {
+  from { opacity:0; transform: translateY(-30px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+
+.logo {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--glow-green), var(--glow-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(0 0 20px rgba(0,255,204,0.4));
+}
+
+.logo span {
+  background: linear-gradient(135deg, var(--glow-gold), #ff6600);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  color: var(--glow-green);
+  padding: 6px 14px;
+  background: rgba(0,255,204,0.08);
+  border: 1px solid rgba(0,255,204,0.25);
+  border-radius: 20px;
+}
+
+.live-dot {
+  width: 8px; height: 8px;
+  background: var(--glow-green);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--glow-green);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:0.4; transform:scale(0.7); }
+}
+
+/* ── TF SWITCHER ── */
+.tf-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  animation: fadeUp 0.6s 0.1s both cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.tf-btn {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 10px 24px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: var(--glass);
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.tf-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--glow-green), var(--glow-blue));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tf-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  color: white;
+  border-color: rgba(0,255,204,0.4);
+  box-shadow: 0 8px 24px rgba(0,255,204,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.tf-btn.active {
+  color: #000;
+  border-color: var(--glow-green);
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 20px rgba(0,255,204,0.5),
+    0 0 60px rgba(0,255,204,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+.tf-btn.active::before { opacity: 1; }
+.tf-btn.active span { position:relative; z-index:1; }
+
+/* ── CHART PANEL ── */
+.chart-panel {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 4px;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 0 0 1px rgba(0,255,204,0.04);
+  margin-bottom: 16px;
+  animation: fadeUp 0.6s 0.2s both cubic-bezier(0.16,1,0.3,1);
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  transition: box-shadow 0.4s;
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,204,0.5), transparent);
+}
+
+.chart-panel:hover {
+  box-shadow:
+    0 24px 80px rgba(0,0,0,0.7),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    0 0 0 1px rgba(0,255,204,0.1),
+    0 0 40px rgba(0,255,204,0.05);
+}
+
+#chartContainer {
+  width: 100%;
+  height: 520px;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* ── CONTROLS PANEL ── */
+.controls-panel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  animation: fadeUp 0.6s 0.3s both cubic-bezier(0.16,1,0.3,1);
+}
+
+.ctrl-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 14px 20px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.07);
+}
+
+.ctrl-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.3);
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -60%;
+  width: 40%; height: 200%;
+  background: rgba(255,255,255,0.15);
+  transform: skewX(-25deg);
+  transition: left 0.5s;
+}
+
+.btn:hover::after { left: 130%; }
+
+.btn-play {
+  background: linear-gradient(135deg, #00ffcc, #00cc99);
+  color: #000;
+  box-shadow: 0 4px 20px rgba(0,255,204,0.35);
+}
+.btn-play:hover {
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 8px 30px rgba(0,255,204,0.55);
+}
+.btn-play:active { transform: scale(0.96); }
+
+.btn-pause {
+  background: linear-gradient(135deg, #ffaa00, #ff6600);
+  color: #000;
+  box-shadow: 0 4px 20px rgba(255,170,0,0.35);
+}
+.btn-pause:hover {
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 8px 30px rgba(255,170,0,0.55);
+}
+
+.btn-step {
+  background: linear-gradient(135deg, #00aaff, #0066cc);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(0,170,255,0.35);
+}
+.btn-step:hover {
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 8px 30px rgba(0,170,255,0.55);
+}
+
+.btn-speed {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.btn-speed:hover {
+  background: rgba(255,255,255,0.12);
+  color: white;
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.2);
+}
+.btn-speed.active {
+  background: rgba(255,170,0,0.2);
+  color: var(--glow-gold);
+  border-color: rgba(255,170,0,0.5);
+  box-shadow: 0 0 16px rgba(255,170,0,0.25);
+}
+
+/* ── STATUS CARD ── */
+.status-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 14px 20px;
+  backdrop-filter: blur(16px);
+  min-width: 180px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.stat-label {
+  color: rgba(255,255,255,0.35);
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  font-family: 'Orbitron', monospace;
+}
+
+.stat-val {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  color: var(--glow-green);
+  font-weight: 700;
+}
+
+/* ── POP-UP TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 999;
+  background: rgba(10,15,30,0.92);
+  border: 1px solid rgba(0,255,204,0.3);
+  border-radius: 14px;
+  padding: 14px 22px;
+  backdrop-filter: blur(20px);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  color: var(--glow-green);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(0,255,204,0.15);
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── Divider ornament ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 12px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.2);
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,204,0.2), transparent);
 }
 </style>
 </head>
-
 <body>
 
-<h2>Smart Money Replay</h2>
+<div class="app">
 
-<div id="chartContainer"></div>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">Smart<span>Money</span>Lab <span style="font-size:0.8rem;color:rgba(255,255,255,0.3);">MTF CORE</span></div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      REPLAY MODE
+    </div>
+  </div>
 
-<div class="controls">
-<button class="primary" onclick="step()">Step</button>
-<button class="primary" onclick="play()">Play</button>
-<button class="secondary" onclick="pause()">Pause</button>
-<br>
-<button class="speed" onclick="setSpeed(1)">x1</button>
-<button class="speed" onclick="setSpeed(2)">x2</button>
-<button class="speed" onclick="setSpeed(4)">x4</button>
+  <!-- TF SWITCHER -->
+  <div class="tf-row">
+    <button class="tf-btn" onclick="switchTF('D1')" id="btnD1"><span>D1</span></button>
+    <button class="tf-btn" onclick="switchTF('H4')" id="btnH4"><span>H4</span></button>
+    <button class="tf-btn active" onclick="switchTF('H1')" id="btnH1"><span>H1</span></button>
+    <div class="divider" style="flex:1;margin:0 10px">TIMEFRAME</div>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-panel">
+    <div id="chartContainer"></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-panel">
+    <div class="ctrl-group">
+      <div class="ctrl-label">PLAYBACK</div>
+      <button class="btn btn-step" onclick="step()">⏭ STEP</button>
+      <button class="btn btn-play" onclick="play()">▶ PLAY</button>
+      <button class="btn btn-pause" onclick="pause()">⏸ PAUSE</button>
+
+      <div style="width:1px;height:30px;background:rgba(255,255,255,0.1);margin:0 8px;"></div>
+
+      <div class="ctrl-label" style="width:auto;margin:0">SPEED</div>
+      <button class="btn btn-speed active" onclick="setSpeed(1,this)" id="s1">×1</button>
+      <button class="btn btn-speed" onclick="setSpeed(2,this)" id="s2">×2</button>
+      <button class="btn btn-speed" onclick="setSpeed(4,this)" id="s4">×4</button>
+    </div>
+
+    <div class="status-card">
+      <div class="stat-row">
+        <span class="stat-label">TF</span>
+        <span class="stat-val" id="statTF">H1</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">CANDLE</span>
+        <span class="stat-val" id="statBar">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">SPEED</span>
+        <span class="stat-val" id="statSpeed">×1</span>
+      </div>
+    </div>
+  </div>
+
 </div>
 
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
 <script>
-
-let fullData = [];
-let currentIndex = 50;
-let interval = null;
+let chart, candleSeries;
 let speed = 1;
+let interval = null;
 
-let chart;
-let candleSeries;
+let state = {
+  currentTF: "H1",
+  data: { H1: [], H4: [], D1: [] },
+  replayIndex: { H1: 50, H4: 20, D1: 10 }
+};
 
-async function loadData(){
-try{
-const res = await fetch('/api/gold-history-h1');
-const data = await res.json();
-
-fullData = data.map(d=>({
-time: Math.floor(new Date(d.time).getTime()/1000),
-open: d.open,
-high: d.high,
-low: d.low,
-close: d.close
-}));
-
-}catch(e){
-console.log("API failed");
-}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-function initChart(){
-const container = document.getElementById('chartContainer');
-
-chart = LightweightCharts.createChart(container, {
-width: container.clientWidth,
-height: container.clientHeight,
-layout:{
-background:{color:'#111'},
-textColor:'#fff'
-},
-grid:{
-vertLines:{color:'#222'},
-horzLines:{color:'#222'}
-}
-});
-
-candleSeries = chart.addCandlestickSeries();
-
-window.addEventListener('resize', ()=>{
-chart.applyOptions({
-width: container.clientWidth,
-height: container.clientHeight
-});
-});
+function updateStatus() {
+  const tf = state.currentTF;
+  document.getElementById('statTF').textContent = tf;
+  document.getElementById('statBar').textContent = state.replayIndex[tf] + ' / ' + (state.data[tf].length || '—');
 }
 
-function render(){
-candleSeries.setData(fullData.slice(0,currentIndex));
+async function loadData() {
+  const res = await fetch('/api/gold-history-h1');
+  const raw = await res.json();
+  state.data.H1 = raw.map(d => ({
+    time: Math.floor(new Date(d.time).getTime() / 1000),
+    open: d.open, high: d.high, low: d.low, close: d.close
+  }));
+  state.data.H4 = aggregate(state.data.H1, 4);
+  state.data.D1 = aggregate(state.data.H1, 24);
+  updateStatus();
 }
 
-function step(){
-if(currentIndex < fullData.length){
-currentIndex++;
-render();
-}
-}
-
-function play(){
-if(interval) return;
-
-interval = setInterval(()=>{
-for(let i=0;i<speed;i++){
-if(currentIndex < fullData.length){
-currentIndex++;
-}
-}
-render();
-},500);
+function aggregate(data, group) {
+  let result = [];
+  for (let i = 0; i < data.length; i += group) {
+    let slice = data.slice(i, i + group);
+    if (slice.length < group) break;
+    result.push({
+      time: slice[0].time,
+      open: slice[0].open,
+      high: Math.max(...slice.map(x => x.high)),
+      low:  Math.min(...slice.map(x => x.low)),
+      close: slice[slice.length - 1].close
+    });
+  }
+  return result;
 }
 
-function pause(){
-clearInterval(interval);
-interval = null;
+function initChart() {
+  const container = document.getElementById('chartContainer');
+  chart = LightweightCharts.createChart(container, {
+    width:  container.clientWidth,
+    height: container.clientHeight,
+    layout: {
+      background: { color: 'transparent' },
+      textColor:  'rgba(255,255,255,0.55)'
+    },
+    grid: {
+      vertLines: { color: 'rgba(255,255,255,0.04)' },
+      horzLines: { color: 'rgba(255,255,255,0.04)' }
+    },
+    crosshair: {
+      vertLine: { color: 'rgba(0,255,204,0.4)', labelBackgroundColor: '#00ffcc' },
+      horzLine: { color: 'rgba(0,255,204,0.4)', labelBackgroundColor: '#00ffcc' }
+    },
+    rightPriceScale: {
+      borderColor: 'rgba(255,255,255,0.08)'
+    },
+    timeScale: {
+      borderColor: 'rgba(255,255,255,0.08)',
+      timeVisible: true
+    }
+  });
+
+  candleSeries = chart.addCandlestickSeries({
+    upColor:          '#00ffcc',
+    downColor:        '#ff4466',
+    borderUpColor:    '#00ffcc',
+    borderDownColor:  '#ff4466',
+    wickUpColor:      'rgba(0,255,204,0.6)',
+    wickDownColor:    'rgba(255,68,102,0.6)'
+  });
+
+  window.addEventListener('resize', () => {
+    chart.applyOptions({
+      width:  container.clientWidth,
+      height: container.clientHeight
+    });
+  });
 }
 
-function setSpeed(s){
-speed = s;
+function render() {
+  const tf = state.currentTF;
+  const idx = state.replayIndex[tf];
+  candleSeries.setData(state.data[tf].slice(0, idx));
+  updateStatus();
 }
 
-(async function(){
-await loadData();
-initChart();
-render();
+function step() {
+  const tf = state.currentTF;
+  if (state.replayIndex[tf] < state.data[tf].length) {
+    state.replayIndex[tf]++;
+    render();
+  } else {
+    showToast('END OF DATA');
+  }
+}
+
+function play() {
+  if (interval) return;
+  showToast('▶  PLAYING');
+  interval = setInterval(() => {
+    const tf = state.currentTF;
+    for (let i = 0; i < speed; i++) {
+      if (state.replayIndex[tf] < state.data[tf].length) state.replayIndex[tf]++;
+    }
+    render();
+  }, 500);
+}
+
+function pause() {
+  clearInterval(interval);
+  interval = null;
+  showToast('⏸  PAUSED');
+}
+
+function setSpeed(s, el) {
+  speed = s;
+  document.querySelectorAll('.btn-speed').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('statSpeed').textContent = '×' + s;
+  showToast('SPEED ×' + s);
+}
+
+function switchTF(tf) {
+  pause();
+  state.currentTF = tf;
+  document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn' + tf).classList.add('active');
+  render();
+  showToast('TIMEFRAME → ' + tf);
+}
+
+(async function () {
+  await loadData();
+  initChart();
+  render();
 })();
 </script>
-
 </body>
 </html>
