@@ -2,10 +2,199 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Smart Money Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Money Replay</title>
+
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+font-family:'Inter',sans-serif;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+color:white;
+padding:20px;
+}
+
+.glass{
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(20px);
+border-radius:20px;
+box-shadow:0 10px 30px rgba(0,0,0,.4);
+padding:15px;
+}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
+
+button{
+border:none;
+padding:8px 14px;
+border-radius:8px;
+font-weight:600;
+cursor:pointer;
+margin-left:5px;
+}
+
+.primary{background:#00ffcc;color:#111;}
+.secondary{background:#ffaa00;color:#111;}
+.speed{background:#ffffff22;color:white;}
+
+#chart{
+height:500px;
+margin-top:10px;
+}
+
+.controls{
+margin-top:15px;
+text-align:center;
+}
+</style>
 </head>
+
 <body>
-<h1>Smart Money Lab Running 🚀</h1>
-<p>If you see this, your Node server works.</p>
+
+<div class="topbar glass">
+<div><b>Smart Money Replay</b></div>
+<div>
+<button class="speed" onclick="setSpeed(1)">x1</button>
+<button class="speed" onclick="setSpeed(2)">x2</button>
+<button class="speed" onclick="setSpeed(4)">x4</button>
+<button class="secondary" onclick="resetReplay()">Reset</button>
+</div>
+</div>
+
+<div class="glass">
+<div id="chart"></div>
+
+<div class="controls">
+<button class="primary" onclick="step()">Step</button>
+<button class="primary" onclick="play()">Play</button>
+<button class="secondary" onclick="pause()">Pause</button>
+</div>
+
+</div>
+
+<script>
+let fullData = [];
+let visibleData = [];
+let currentIndex = 50;
+let interval = null;
+let speed = 1;
+
+let chart;
+let candleSeries;
+
+/* ============================= */
+/*        LOAD DATA API          */
+/* ============================= */
+
+async function loadData(){
+try{
+let res = await fetch('/api/gold-history-h1');
+let data = await res.json();
+
+fullData = data.map(d=>({
+time: Math.floor(new Date(d.time).getTime()/1000),
+open: d.open,
+high: d.high,
+low: d.low,
+close: d.close
+}));
+
+}catch(e){
+console.log("API failed");
+}
+}
+
+/* ============================= */
+/*        INIT CHART             */
+/* ============================= */
+
+function initChart(){
+chart = LightweightCharts.createChart(
+document.getElementById('chart'),
+{
+layout:{
+background:{color:'transparent'},
+textColor:'#ffffff'
+},
+grid:{
+vertLines:{color:'rgba(255,255,255,0.05)'},
+horzLines:{color:'rgba(255,255,255,0.05)'}
+},
+crosshair:{mode:1},
+rightPriceScale:{
+borderColor:'rgba(255,255,255,0.2)'
+},
+timeScale:{
+borderColor:'rgba(255,255,255,0.2)'
+}
+}
+);
+
+candleSeries = chart.addCandlestickSeries();
+}
+
+/* ============================= */
+/*        REPLAY ENGINE          */
+/* ============================= */
+
+function render(){
+visibleData = fullData.slice(0,currentIndex);
+candleSeries.setData(visibleData);
+}
+
+function step(){
+if(currentIndex < fullData.length){
+currentIndex++;
+render();
+}
+}
+
+function play(){
+if(interval) return;
+interval = setInterval(()=>{
+for(let i=0;i<speed;i++){
+if(currentIndex < fullData.length){
+currentIndex++;
+}
+}
+render();
+},500);
+}
+
+function pause(){
+clearInterval(interval);
+interval = null;
+}
+
+function setSpeed(s){
+speed = s;
+}
+
+function resetReplay(){
+pause();
+currentIndex = 50;
+render();
+}
+
+/* ============================= */
+/*            INIT               */
+/* ============================= */
+
+(async function(){
+await loadData();
+initChart();
+render();
+})();
+</script>
+
 </body>
 </html>
